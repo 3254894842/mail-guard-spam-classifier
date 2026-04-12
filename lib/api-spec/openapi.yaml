@@ -1,0 +1,560 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification for spam email classification system
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Email authentication and session management
+  - name: email
+    description: Email fetching and spam classification
+  - name: users
+    description: User management (admin only)
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/connect:
+    post:
+      operationId: connectEmail
+      tags: [auth]
+      summary: Connect to email via IMAP credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectEmailRequest"
+      responses:
+        "200":
+          description: Connected successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectEmailResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/disconnect:
+    post:
+      operationId: disconnectEmail
+      tags: [auth]
+      summary: Disconnect current email session
+      responses:
+        "200":
+          description: Disconnected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/session:
+    get:
+      operationId: getSession
+      tags: [auth]
+      summary: Get current session info
+      responses:
+        "200":
+          description: Session info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionInfo"
+
+  /email/inbox:
+    get:
+      operationId: getInbox
+      tags: [email]
+      summary: Get inbox emails with spam classification
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [all, spam, ham]
+            default: all
+      responses:
+        "200":
+          description: Inbox emails
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboxResponse"
+        "401":
+          description: Not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /email/stats:
+    get:
+      operationId: getEmailStats
+      tags: [email]
+      summary: Get spam classification statistics
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailStats"
+
+  /email/classify:
+    post:
+      operationId: classifyEmail
+      tags: [email]
+      summary: Manually classify email text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassifyRequest"
+      responses:
+        "200":
+          description: Classification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassifyResult"
+
+  /email/{uid}:
+    get:
+      operationId: getEmailDetail
+      tags: [email]
+      summary: Get full email detail
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin only)
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a new user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+
+  /users/{id}:
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /users/{id}/unlock:
+    post:
+      operationId: unlockUser
+      tags: [users]
+      summary: Unlock a locked user account (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Unlocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [users]
+      summary: Admin panel login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginRequest"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "401":
+          description: Invalid or locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [users]
+      summary: Admin panel logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+      required: [error]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success]
+
+    ConnectEmailRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        provider:
+          type: string
+          enum: [qq, 163, 126, gmail, outlook, sina, auto]
+      required: [email, password, provider]
+
+    ConnectEmailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        userEmail:
+          type: string
+        providerName:
+          type: string
+        totalEmails:
+          type: integer
+      required: [success, userEmail, providerName, totalEmails]
+
+    SessionInfo:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        userEmail:
+          type: string
+        providerName:
+          type: string
+        adminUser:
+          $ref: "#/components/schemas/AppUser"
+      required: [connected]
+
+    EmailSummary:
+      type: object
+      properties:
+        uid:
+          type: string
+        from:
+          type: string
+        fromName:
+          type: string
+        subject:
+          type: string
+        date:
+          type: string
+        snippet:
+          type: string
+        isSpam:
+          type: boolean
+        spamScore:
+          type: number
+        spamType:
+          type: string
+      required: [uid, from, subject, date, isSpam, spamScore]
+
+    EmailDetail:
+      type: object
+      properties:
+        uid:
+          type: string
+        from:
+          type: string
+        fromName:
+          type: string
+        to:
+          type: string
+        subject:
+          type: string
+        date:
+          type: string
+        bodyText:
+          type: string
+        bodyHtml:
+          type: string
+        isSpam:
+          type: boolean
+        spamScore:
+          type: number
+        spamType:
+          type: string
+        spamReasons:
+          type: array
+          items:
+            type: string
+      required: [uid, from, subject, date, isSpam, spamScore]
+
+    InboxResponse:
+      type: object
+      properties:
+        emails:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailSummary"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        spamCount:
+          type: integer
+      required: [emails, total, page, limit, spamCount]
+
+    EmailStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        spam:
+          type: integer
+        ham:
+          type: integer
+        spamRate:
+          type: number
+        topSpamTypes:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              count:
+                type: integer
+            required: [type, count]
+      required: [total, spam, ham, spamRate, topSpamTypes]
+
+    ClassifyRequest:
+      type: object
+      properties:
+        text:
+          type: string
+        subject:
+          type: string
+        from:
+          type: string
+      required: [text]
+
+    ClassifyResult:
+      type: object
+      properties:
+        isSpam:
+          type: boolean
+        spamScore:
+          type: number
+        spamType:
+          type: string
+        reasons:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+      required: [isSpam, spamScore, reasons, confidence]
+
+    AppUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+        isLocked:
+          type: boolean
+        loginAttempts:
+          type: integer
+        createdAt:
+          type: string
+        lastLoginAt:
+          type: string
+      required: [id, username, role, isLocked, loginAttempts, createdAt]
+
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppUser"
+        total:
+          type: integer
+      required: [users, total]
+
+    CreateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+      required: [username, password, role]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+        password:
+          type: string
+
+    AdminLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
