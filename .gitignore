@@ -48,11 +48,6 @@ Thumbs.db
 .cache/
 .local/
 
-# ML 模型文件（本地训练生成，不上传 GitHub）
-classifier-service/*.pkl
-classifier-service/*.joblib
-classifier-service/training_report.txt
-
-# 训练数据（通常较大，不上传）
+# 训练数据（较大，不上传）
 classifier-service/output_label_0.csv
 classifier-service/output_label_1.csv
