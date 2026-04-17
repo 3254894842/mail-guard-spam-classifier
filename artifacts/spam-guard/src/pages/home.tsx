@@ -8,9 +8,9 @@ import {
   useGetSession,
   ConnectEmailRequestProvider 
 } from "@workspace/api-client-react";
-import { Shield, Mail, Key, Loader2, AlertCircle } from "lucide-react";
+import { Shield, Mail, Key, Loader2, AlertCircle, Info, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,10 +24,70 @@ const formSchema = z.object({
   provider: z.nativeEnum(ConnectEmailRequestProvider)
 });
 
+const PROVIDER_TIPS: Record<string, { title: string; steps: string[]; url?: string; urlText?: string }> = {
+  [ConnectEmailRequestProvider.qq]: {
+    title: "QQ 邮箱授权码获取方式",
+    steps: [
+      "登录 QQ 邮箱网页版 → 点击右上角「设置」",
+      "选择「账户」标签页 → 找到「POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV服务」",
+      "开启「IMAP/SMTP服务」→ 按提示发送短信验证",
+      "验证成功后页面会显示16位授权码，复制粘贴到此处",
+    ],
+    url: "https://wx.mail.qq.com/list/readtemplate?name=app_intro.html&utm_medium=infobar",
+    urlText: "QQ邮箱帮助中心",
+  },
+  [ConnectEmailRequestProvider.NUMBER_163]: {
+    title: "163 邮箱授权码获取方式",
+    steps: [
+      "登录 163 邮箱 → 点击顶部「设置」→「POP3/SMTP/IMAP」",
+      "开启「IMAP/SMTP服务」",
+      "按提示完成手机验证",
+      "系统会显示授权码（非登录密码），请复制后填入此处",
+    ],
+  },
+  [ConnectEmailRequestProvider.NUMBER_126]: {
+    title: "126 邮箱授权码获取方式",
+    steps: [
+      "登录 126 邮箱 → 点击「设置」→「POP3/SMTP/IMAP」",
+      "开启「IMAP/SMTP服务」",
+      "按照提示进行手机短信验证",
+      "获得授权码后填入此处（不是登录密码）",
+    ],
+  },
+  [ConnectEmailRequestProvider.gmail]: {
+    title: "Gmail 应用专用密码获取方式",
+    steps: [
+      "登录 Google 账号 → 进入「安全性」设置",
+      "确保已开启「两步验证」",
+      "搜索「应用专用密码」→ 选择「邮件」和您的设备",
+      "Google 会生成16位密码，将其填入此处（而非 Gmail 登录密码）",
+    ],
+    url: "https://myaccount.google.com/apppasswords",
+    urlText: "前往生成应用专用密码",
+  },
+  [ConnectEmailRequestProvider.outlook]: {
+    title: "Outlook 连接说明",
+    steps: [
+      "Outlook 个人账号可直接使用登录密码",
+      "如开启了两步验证，需在账号安全中心生成「应用密码」",
+      "企业版 Office 365 账号请联系管理员开启 IMAP 权限",
+    ],
+  },
+  [ConnectEmailRequestProvider.sina]: {
+    title: "新浪邮箱授权码获取方式",
+    steps: [
+      "登录新浪邮箱 → 点击「设置」→「客户端/POP/IMAP」",
+      "开启 IMAP 服务并设置客户端授权码",
+      "将生成的授权码填入此处",
+    ],
+  },
+};
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [errorMsg, setErrorMsg] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState<string>(ConnectEmailRequestProvider.auto);
   
   const { data: session, isLoading: sessionLoading } = useGetSession();
   const connectMutation = useConnectEmail();
@@ -78,11 +138,14 @@ export default function Home() {
     );
   }
 
+  const providerTip = PROVIDER_TIPS[selectedProvider];
+
   return (
     <Layout>
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
+      <div className="flex-1 flex items-center justify-center p-4 py-10">
+        <div className="w-full max-w-md space-y-5">
+          {/* 标题 */}
+          <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 text-primary mb-4 ring-1 ring-primary/30">
               <Shield className="w-8 h-8" />
             </div>
@@ -90,6 +153,7 @@ export default function Home() {
             <p className="text-muted-foreground">智能分析，精准拦截，为您守护纯净的收件箱</p>
           </div>
 
+          {/* 连接表单 */}
           <Card className="border-border shadow-xl bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>连接您的邮箱</CardTitle>
@@ -114,7 +178,10 @@ export default function Home() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>邮箱服务商</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select 
+                          onValueChange={(v) => { field.onChange(v); setSelectedProvider(v); }} 
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger data-testid="select-provider">
                               <SelectValue placeholder="选择服务商" />
@@ -164,9 +231,6 @@ export default function Home() {
                             <Input type="password" placeholder="IMAP 授权码" className="pl-9" data-testid="input-password" {...field} />
                           </div>
                         </FormControl>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          对于国内邮箱（如QQ、163），请使用开启 IMAP 服务时生成的授权码，而非登录密码。
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -191,6 +255,42 @@ export default function Home() {
               </Form>
             </CardContent>
           </Card>
+
+          {/* 动态授权码提示卡片 */}
+          {providerTip && (
+            <Card className="border-border/60 bg-primary/5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <h3 className="text-sm font-semibold text-primary">{providerTip.title}</h3>
+                </div>
+                <ol className="space-y-1.5 mb-3">
+                  {providerTip.steps.map((step, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+                      <span className="shrink-0 font-bold text-primary/80 font-mono">{i + 1}.</span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+                {providerTip.url && (
+                  <a
+                    href={providerTip.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {providerTip.urlText}
+                  </a>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 隐私提示 */}
+          <p className="text-center text-xs text-muted-foreground px-4">
+            您的授权码仅用于本次 IMAP 会话，不会被持久化存储。
+          </p>
         </div>
       </div>
     </Layout>

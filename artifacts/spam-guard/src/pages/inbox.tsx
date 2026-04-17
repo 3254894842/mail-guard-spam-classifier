@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { 
   useGetSession,
   useGetInbox,
   getGetInboxQueryKey,
   useGetEmailStats,
+  getGetEmailStatsQueryKey,
   GetInboxFilter
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
@@ -13,7 +15,7 @@ import { zhCN } from "date-fns/locale";
 import {
   Shield, AlertTriangle, CheckCircle, Mail, Loader2,
   ChevronLeft, ChevronRight, BarChart3,
-  BadgeAlert, Banknote, FishSymbol, Link2, Gift, ShieldAlert
+  BadgeAlert, Banknote, FishSymbol, Link2, Gift, ShieldAlert, RefreshCw
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,7 +99,9 @@ export default function Inbox() {
   const [, setLocation] = useLocation();
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<GetInboxFilter>(GetInboxFilter.all);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const limit = 20;
+  const queryClient = useQueryClient();
 
   const { data: session, isLoading: sessionLoading } = useGetSession();
   
@@ -119,6 +123,13 @@ export default function Inbox() {
   const handleFilterChange = (value: string) => {
     setFilter(value as GetInboxFilter);
     setPage(1);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey({ page, limit, filter }) });
+    await queryClient.invalidateQueries({ queryKey: getGetEmailStatsQueryKey() });
+    setIsRefreshing(false);
   };
 
   const getScoreColor = (score: number) => {
@@ -234,7 +245,20 @@ export default function Inbox() {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h2 className="text-xl font-bold">收件箱</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold">收件箱</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || inboxLoading}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-refresh"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              <span className="ml-1.5 text-xs">{isRefreshing ? "刷新中..." : "刷新"}</span>
+            </Button>
+          </div>
           <Tabs value={filter} onValueChange={handleFilterChange} className="w-full md:w-auto">
             <TabsList className="grid w-full grid-cols-3 bg-muted">
               <TabsTrigger value={GetInboxFilter.all} data-testid="tab-filter-all">全部</TabsTrigger>

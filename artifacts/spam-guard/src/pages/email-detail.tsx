@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { 
   useGetSession,
@@ -72,6 +72,41 @@ const SPAM_TYPE_CONFIG: Record<string, {
 function getTypeConfig(spamType?: string) {
   if (!spamType) return SPAM_TYPE_CONFIG["一般垃圾邮件"];
   return SPAM_TYPE_CONFIG[spamType] ?? SPAM_TYPE_CONFIG["一般垃圾邮件"];
+}
+
+function SandboxedEmailHtml({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body { font-family: sans-serif; font-size: 14px; color: #e5e7eb; background: transparent; margin: 0; padding: 8px; word-break: break-word; }
+      a { color: #60a5fa; }
+      img { max-width: 100%; height: auto; }
+    </style></head><body>${html}</body></html>`);
+    doc.close();
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (iframe && doc.body) {
+        iframe.style.height = doc.body.scrollHeight + "px";
+      }
+    });
+    resizeObserver.observe(doc.body);
+    return () => resizeObserver.disconnect();
+  }, [html]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      sandbox="allow-same-origin"
+      className="w-full border-none min-h-[100px]"
+      title="邮件正文"
+    />
+  );
 }
 
 export default function EmailDetail() {
@@ -195,12 +230,9 @@ export default function EmailDetail() {
               <Separator className="bg-border" />
               <CardContent className="pt-6">
                 {email.bodyHtml ? (
-                  <div
-                    className="prose prose-sm dark:prose-invert max-w-none prose-a:text-primary prose-img:rounded-md break-words"
-                    dangerouslySetInnerHTML={{ __html: email.bodyHtml }}
-                  />
+                  <SandboxedEmailHtml html={email.bodyHtml} />
                 ) : (
-                  <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                  <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/90">
                     {email.bodyText || "此邮件没有正文内容。"}
                   </div>
                 )}

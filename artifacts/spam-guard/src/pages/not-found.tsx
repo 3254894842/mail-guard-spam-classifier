@@ -1,21 +1,27 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { Link } from "wouter";
+import { Layout } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { ShieldOff, Home } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
-          </div>
-
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <Layout>
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-6">
+          <ShieldOff className="w-10 h-10 text-muted-foreground" />
+        </div>
+        <h1 className="text-5xl font-black text-foreground mb-3 font-mono">404</h1>
+        <h2 className="text-xl font-semibold text-foreground mb-2">页面不存在</h2>
+        <p className="text-muted-foreground max-w-sm mb-8">
+          您访问的页面不存在或已被移除，请返回首页重新操作。
+        </p>
+        <Link href="/">
+          <Button>
+            <Home className="mr-2 h-4 w-4" />
+            返回首页
+          </Button>
+        </Link>
+      </div>
+    </Layout>
   );
 }

@@ -244,8 +244,8 @@ export default function Classify() {
                   <div className="space-y-3 bg-card p-5 rounded-xl border border-border shadow-sm">
                     <div className="flex justify-between items-end">
                       <div>
-                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">THREAT SCORE</h4>
-                        <div className="text-sm">危险指数评估</div>
+                        <h4 className="text-xs font-semibold text-muted-foreground mb-1">威胁评分</h4>
+                        <div className="text-sm text-muted-foreground">危险指数评估（0–100）</div>
                       </div>
                       <div className={`text-5xl font-black font-mono tracking-tighter ${result.isSpam ? 'text-destructive' : 'text-green-500'}`}>
                         {Math.round(result.spamScore)}
@@ -255,23 +255,23 @@ export default function Classify() {
                       value={result.spamScore} 
                       className={`h-3 ${result.isSpam ? '[&>div]:bg-destructive' : '[&>div]:bg-green-500'} bg-muted/50`} 
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                      <span>0.0</span>
-                      <span>100.0</span>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0 安全</span>
+                      <span>100 高危</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-card p-4 rounded-xl border border-border">
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">CONFIDENCE</h4>
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-1">模型置信度</h4>
                       <div className="text-2xl font-bold font-mono">{(result.confidence * 100).toFixed(1)}%</div>
-                      <div className="text-xs text-muted-foreground mt-1">模型置信度</div>
+                      <div className="text-xs text-muted-foreground mt-1">判断的确信程度</div>
                     </div>
                     {result.spamType && (
                       <div className="bg-card p-4 rounded-xl border border-border">
-                        <h4 className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">CATEGORY</h4>
+                        <h4 className="text-xs font-semibold text-muted-foreground mb-1">垃圾邮件类型</h4>
                         <div className="text-lg font-bold truncate" title={result.spamType}>{result.spamType}</div>
-                        <div className="text-xs text-muted-foreground mt-1">分类类型</div>
+                        <div className="text-xs text-muted-foreground mt-1">分类标签</div>
                       </div>
                     )}
                   </div>
